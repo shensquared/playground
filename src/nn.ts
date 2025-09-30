@@ -138,10 +138,6 @@ export class Activations {
 
 /** Build-in regularization functions */
 export class RegularizationFunction {
-  public static L1: RegularizationFunction = {
-    output: w => Math.abs(w),
-    der: w => w < 0 ? -1 : (w > 0 ? 1 : 0)
-  };
   public static L2: RegularizationFunction = {
     output: w => 0.5 * w * w,
     der: w => w
@@ -359,14 +355,7 @@ export function updateWeights(network: Node[][], learningRate: number,
           // Further update the weight based on regularization.
           let newLinkWeight = link.weight -
               (learningRate * regularizationRate) * regulDer;
-          if (link.regularization === RegularizationFunction.L1 &&
-              link.weight * newLinkWeight < 0) {
-            // The weight crossed 0 due to the regularization term. Set it to 0.
-            link.weight = 0;
-            link.isDead = true;
-          } else {
-            link.weight = newLinkWeight;
-          }
+          link.weight = newLinkWeight;
           link.accErrorDer = 0;
           link.numAccumulatedDers = 0;
         }

@@ -48,7 +48,7 @@ export class HeatMap {
       userSettings?: HeatMapSettings) {
     this.numSamples = numSamples;
     let height = width;
-    let padding = userSettings.showAxes ? 20 : 0;
+    let padding = userSettings.showAxes ? 30 : 0;
 
     if (userSettings != null) {
       // overwrite the defaults with the user-specified settings.
@@ -132,6 +132,27 @@ export class HeatMap {
         .attr("class", "y axis")
         .attr("transform", "translate(" + (width - 2 * padding) + ",0)")
         .call(yAxis);
+
+      // Add axis labels
+      // X-axis label (bottom)
+      this.svg.append("text")
+        .attr("x", (width - 2 * padding) / 2)
+        .attr("y", height - 2 * padding + 25)
+        .attr("text-anchor", "middle")
+        .style("font-size", "14px")
+        .style("fill", "#333")
+        .style("font-weight", "bold")
+        .text("x1");
+
+      // Y-axis label (right side)
+      this.svg.append("text")
+        .attr("x", width - 2 * padding + 22)
+        .attr("y", (height - 2 * padding) / 2)
+        .attr("text-anchor", "middle")
+        .style("font-size", "14px")
+        .style("fill", "#333")
+        .style("font-weight", "bold")
+        .text("x2");
     }
   }
 

@@ -15,6 +15,7 @@ limitations under the License.
 
 import * as nn from "./nn";
 import {HeatMap, reduceMatrix} from "./heatmap";
+import {Plot3D} from "./plot3d";
 import {
   State,
   datasets,
@@ -157,6 +158,7 @@ let xDomain: [number, number] = [-6, 6];
 let heatMap =
     new HeatMap(300, DENSITY, xDomain, xDomain, d3.select("#heatmap"),
         {showAxes: true});
+let plot3D = new Plot3D("plot3d", DENSITY, xDomain, xDomain);
 let linkWidthScale = d3.scale.linear()
   .domain([0, 5])
   .range([1, 10])
@@ -355,6 +357,14 @@ function makeGUI() {
 
   let problem = d3.select("#problem").on("change", function() {
     state.problem = problems[this.value];
+    // Switch between 2D and 3D visualization
+    if (state.problem === Problem.REGRESSION) {
+      d3.select("#heatmap").style("display", "none");
+      plot3D.show();
+    } else {
+      d3.select("#heatmap").style("display", "block");
+      plot3D.hide();
+    }
     generateData();
     drawDatasetThumbnails();
     parametersChanged = true;
@@ -857,7 +867,13 @@ function updateUI(firstStep = false) {
   updateDecisionBoundary(network, firstStep);
   let selectedId = selectedNodeId != null ?
       selectedNodeId : nn.getOutputNode(network).id;
-  heatMap.updateBackground(boundary[selectedId], state.discretize);
+  
+  // Update visualization based on problem type
+  if (state.problem === Problem.REGRESSION) {
+    plot3D.updateSurface(boundary[selectedId], state.discretize);
+  } else {
+    heatMap.updateBackground(boundary[selectedId], state.discretize);
+  }
 
   // Update all decision boundaries.
   d3.select("#network").selectAll("div.canvas")
@@ -1085,6 +1101,11 @@ function generateData(firstTime = false) {
   testData = data.slice(splitIndex);
   heatMap.updatePoints(trainData);
   heatMap.updateTestPoints(state.showTestData ? testData : []);
+  
+  // Update 3D plot with data points
+  if (state.problem === Problem.REGRESSION) {
+    plot3D.updatePoints(trainData, state.showTestData ? testData : []);
+  }
 }
 
 let firstInteraction = true;
@@ -1116,6 +1137,16 @@ function simulationStarted() {
 drawDatasetThumbnails();
 initTutorial();
 makeGUI();
+
+// Initialize correct visualization based on problem type
+if (state.problem === Problem.REGRESSION) {
+  d3.select("#heatmap").style("display", "none");
+  plot3D.show();
+} else {
+  d3.select("#heatmap").style("display", "block");
+  plot3D.hide();
+}
+
 generateData(true);
 reset(true);
 hideControls();
