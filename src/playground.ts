@@ -869,9 +869,14 @@ function updateUI(firstStep = false) {
       selectedNodeId : nn.getOutputNode(network).id;
   
   // Update visualization based on problem type
+  console.log("updateUI: Problem type is", state.problem === Problem.REGRESSION ? "REGRESSION" : "CLASSIFICATION");
+  console.log("updateUI: Selected ID", selectedId, "boundary data exists:", !!boundary[selectedId]);
+  
   if (state.problem === Problem.REGRESSION) {
+    console.log("updateUI: Calling plot3D.updateSurface");
     plot3D.updateSurface(boundary[selectedId], state.discretize);
   } else {
+    console.log("updateUI: Calling heatMap.updateBackground");
     heatMap.updateBackground(boundary[selectedId], state.discretize);
   }
 
@@ -1139,12 +1144,15 @@ initTutorial();
 makeGUI();
 
 // Initialize correct visualization based on problem type
+console.log("Initial problem type:", state.problem === Problem.REGRESSION ? "REGRESSION" : "CLASSIFICATION");
 if (state.problem === Problem.REGRESSION) {
   d3.select("#heatmap").style("display", "none");
   plot3D.show();
+  console.log("3D plot should be visible now");
 } else {
   d3.select("#heatmap").style("display", "block");
   plot3D.hide();
+  console.log("2D heatmap should be visible now");
 }
 
 generateData(true);
