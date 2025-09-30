@@ -142,7 +142,7 @@ export class State {
   percTrainData = 50;
   activation = nn.Activations.LINEAR;
   regularization: nn.RegularizationFunction = null;
-  problem = Problem.CLASSIFICATION;
+  problem = Problem.REGRESSION;
   initZero = false;
   hideText = false;
   collectStats = false;

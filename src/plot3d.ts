@@ -45,7 +45,7 @@ export class Plot3D {
       scene: {
         xaxis: { title: 'x1', range: this.xDomain },
         yaxis: { title: 'x2', range: this.yDomain },
-        zaxis: { title: 'Output' },
+        zaxis: { title: 'NN output' },
         camera: {
           eye: { x: 1.5, y: 1.5, z: 1.5 }
         }
@@ -60,19 +60,50 @@ export class Plot3D {
       staticPlot: false
     };
 
-    // Initialize with empty data
-    const data = [{
-      type: 'surface',
-      x: [],
-      y: [],
-      z: [],
-      colorscale: [
-        [0, '#f59322'],
-        [0.5, '#e8eaeb'], 
-        [1, '#0877bd']
-      ],
-      showscale: false
-    }];
+    // Initialize with surface and empty scatter plots for data points
+    const data = [
+      {
+        type: 'surface',
+        x: [],
+        y: [],
+        z: [],
+        colorscale: [
+          [0, '#f59322'],
+          [0.5, '#e8eaeb'], 
+          [1, '#0877bd']
+        ],
+        showscale: false,
+        name: 'NN Surface'
+      },
+      {
+        type: 'scatter3d',
+        mode: 'markers',
+        x: [],
+        y: [],
+        z: [],
+        marker: {
+          size: 5,
+          color: '#ff4444',
+          symbol: 'circle'
+        },
+        name: 'Training Data',
+        showlegend: false
+      },
+      {
+        type: 'scatter3d',
+        mode: 'markers',
+        x: [],
+        y: [],
+        z: [],
+        marker: {
+          size: 5,
+          color: '#4444ff',
+          symbol: 'circle'
+        },
+        name: 'Test Data',
+        showlegend: false
+      }
+    ];
 
     Plotly.newPlot(this.container, data, layout, config);
   }
