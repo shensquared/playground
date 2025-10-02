@@ -849,12 +849,40 @@ function updateDecisionBoundary(network: nn.Node[][], firstTime: boolean) {
 
 function getLoss(network: nn.Node[][], dataPoints: Example2D[]): number {
   let loss = 0;
+  let sampleOutputs = [];
   for (let i = 0; i < dataPoints.length; i++) {
     let dataPoint = dataPoints[i];
     let input = constructInput(dataPoint.x, dataPoint.y);
     let output = nn.forwardProp(network, input);
     loss += nn.Errors.SQUARE.error(output, dataPoint.label);
+    
+    // Debug: collect some sample outputs
+    if (i < 5) {
+      sampleOutputs.push({
+        input: input,
+        output: output,
+        target: dataPoint.label,
+        error: nn.Errors.SQUARE.error(output, dataPoint.label)
+      });
+    }
   }
+  
+  // Debug: log sample outputs every 100 iterations
+  if (iter % 100 === 0 && sampleOutputs.length > 0) {
+    console.log(`Iteration ${iter} - Sample outputs:`, sampleOutputs);
+  }
+  
+  // Debug: log final network parameters when loss is very low
+  if (loss < 0.001 && iter > 0) {
+    console.log(`Low loss detected (${loss.toFixed(6)}) - Network parameters:`);
+    nn.forEachNode(network, true, node => {
+      console.log(`Node ${node.id}: bias=${node.bias.toFixed(4)}`);
+      node.inputLinks.forEach(link => {
+        console.log(`  Link from ${link.source.id}: weight=${link.weight.toFixed(4)}`);
+      });
+    });
+  }
+  
   return loss / dataPoints.length;
 }
 
@@ -1099,12 +1127,12 @@ function generateData(firstTime = false) {
   let splitIndex = Math.floor(data.length * state.percTrainData / 100);
   trainData = data.slice(0, splitIndex);
   testData = data.slice(splitIndex);
-  heatMap.updatePoints(trainData);
-  heatMap.updateTestPoints(state.showTestData ? testData : []);
-  
-  // Update 3D plot with data points
+  // Update visualization based on problem type
   if (state.problem === Problem.REGRESSION) {
     plot3D.updatePoints(trainData, state.showTestData ? testData : []);
+  } else {
+    heatMap.updatePoints(trainData);
+    heatMap.updateTestPoints(state.showTestData ? testData : []);
   }
 }
 

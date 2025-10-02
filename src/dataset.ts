@@ -84,9 +84,7 @@ export function regressPlane(numSamples: number, noise: number):
   for (let i = 0; i < numSamples; i++) {
     let x = randUniform(-radius, radius);
     let y = randUniform(-radius, radius);
-    let noiseX = randUniform(-radius, radius) * noise;
-    let noiseY = randUniform(-radius, radius) * noise;
-    let label = getLabel(x + noiseX, y + noiseY);
+    let label = getLabel(x, y) + randUniform(-noise/100, noise/100);
     points.push({x, y, label});
   }
   return points;
