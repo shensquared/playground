@@ -43,15 +43,15 @@ export class Plot3D {
     const layout = {
       title: 'Neural Network Function Approximation',
       scene: {
-        xaxis: { title: 'x1', range: this.xDomain },
-        yaxis: { title: 'x2', range: this.yDomain },
-        zaxis: { title: 'NN output' },
+        xaxis: { title: {text: 'x1'}, range: this.xDomain },
+        yaxis: { title: {text: 'x2'}, range: this.yDomain },
+        zaxis: { title: {text: 'nn output'} },
         camera: {
           eye: { x: 1.5, y: 1.5, z: 1.5 }
         }
       },
-      width: 300,
-      height: 300,
+      width: 450,
+      height: 450,
       margin: { l: 0, r: 0, b: 0, t: 30 }
     };
 
@@ -109,63 +109,38 @@ export class Plot3D {
   }
 
   updateSurface(data: number[][], discretize: boolean): void {
-    const dx = data[0].length;  // DENSITY
-    const dy = data.length;     // DENSITY
+    const nx = data.length;       // outer index = playground's i (x axis)
+    const ny = data[0].length;    // inner index = playground's j (y axis)
 
-    // Create coordinate arrays
+    // x coordinates: xScale(i) maps i=0..nx-1 to xDomain[0]..xDomain[1]
     const x = [];
+    for (let i = 0; i < nx; i++) {
+      x.push(this.xDomain[0] + (i / (nx - 1)) * (this.xDomain[1] - this.xDomain[0]));
+    }
+
+    // y coordinates: yScale(j) maps j=0..ny-1 to yDomain[1]..yDomain[0] (inverted)
     const y = [];
+    for (let j = 0; j < ny; j++) {
+      y.push(this.yDomain[1] - (j / (ny - 1)) * (this.yDomain[1] - this.yDomain[0]));
+    }
+
+    // Plotly convention: z[row][col] is displayed at (x[col], y[row])
+    // data[i][j] should display at (x[i], y[j])
+    // So we need z[j][i] = data[i][j] (transpose)
     const z = [];
-
-    // x coordinates (i index)
-    for (let i = 0; i < dx; i++) {
-      x.push(this.xDomain[0] + (i / (dx - 1)) * (this.xDomain[1] - this.xDomain[0]));
-    }
-
-    // y coordinates (j index)
-    for (let j = 0; j < dy; j++) {
-      y.push(this.yDomain[0] + (j / (dy - 1)) * (this.yDomain[1] - this.yDomain[0]));
-    }
-
-    // Create Z matrix for Plotly surface plot
-    // Plotly expects z[i][j] where i is x-index and j is y-index
-    // Note: playground's yScale is inverted, so data[i][j] has j=0 at yDomain[1]
-    let minZ = Infinity, maxZ = -Infinity;
-    for (let i = 0; i < dx; i++) {
+    for (let j = 0; j < ny; j++) {
       const row = [];
-      for (let j = 0; j < dy; j++) {
-        // Invert j index to match playground's inverted yScale
-        let value = data[i][dy - 1 - j];
+      for (let i = 0; i < nx; i++) {
+        let value = data[i][j];
         if (discretize) {
           value = (value >= 0 ? 1 : -1);
         }
-        minZ = Math.min(minZ, value);
-        maxZ = Math.max(maxZ, value);
         row.push(value);
       }
       z.push(row);
     }
 
-    // Debug: log the range of values
-    console.log(`3D Surface update - Z range: [${minZ.toFixed(3)}, ${maxZ.toFixed(3)}]`);
-    
-    // Debug: log some sample surface values to see the pattern
-    if (z.length > 0 && z[0].length > 0) {
-      const centerX = Math.floor(z.length / 2);
-      const centerY = Math.floor(z[0].length / 2);
-      console.log(`Surface coordinates: x=[${x[0].toFixed(2)}, ${x[x.length-1].toFixed(2)}], y=[${y[0].toFixed(2)}, ${y[y.length-1].toFixed(2)}]`);
-      console.log(`Surface sample values: center=${z[centerX][centerY].toFixed(3)}, corners=[${z[0][0].toFixed(3)}, ${z[0][z[0].length-1].toFixed(3)}, ${z[z.length-1][0].toFixed(3)}, ${z[z.length-1][z[0].length-1].toFixed(3)}]`);
-      console.log(`Corner coordinates: [(${x[0].toFixed(1)},${y[0].toFixed(1)})→${z[0][0].toFixed(3)}, (${x[x.length-1].toFixed(1)},${y[0].toFixed(1)})→${z[0][z[0].length-1].toFixed(3)}, (${x[0].toFixed(1)},${y[y.length-1].toFixed(1)})→${z[z.length-1][0].toFixed(3)}, (${x[x.length-1].toFixed(1)},${y[y.length-1].toFixed(1)})→${z[z.length-1][z[0].length-1].toFixed(3)}]`);
-    }
-
-    // Update surface plot
-    const surfaceUpdate = {
-      x: [x],
-      y: [y], 
-      z: [z]
-    };
-
-    Plotly.restyle(this.container, surfaceUpdate, [0]);
+    Plotly.restyle(this.container, {x: [x], y: [y], z: [z]}, [0]);
 
     // Update scatter plots with data points
     this.updateScatterPlots();
@@ -187,17 +162,6 @@ export class Plot3D {
     const testX = this.testPoints.map(p => p.x);
     const testY = this.testPoints.map(p => p.y);
     const testZ = this.testPoints.map(p => p.label);
-
-    // Debug: log data point ranges
-    if (this.trainPoints.length > 0) {
-      const trainZMin = Math.min(...trainZ);
-      const trainZMax = Math.max(...trainZ);
-      const trainXMin = Math.min(...trainX);
-      const trainXMax = Math.max(...trainX);
-      const trainYMin = Math.min(...trainY);
-      const trainYMax = Math.max(...trainY);
-      console.log(`Training data ranges: x=[${trainXMin.toFixed(2)}, ${trainXMax.toFixed(2)}], y=[${trainYMin.toFixed(2)}, ${trainYMax.toFixed(2)}], z=[${trainZMin.toFixed(3)}, ${trainZMax.toFixed(3)}]`);
-    }
 
     // Update scatter plots
     const scatterUpdate = {

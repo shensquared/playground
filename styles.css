@@ -73,6 +73,12 @@ body {
   }
 }
 
+@media (min-width: 1280px) {
+  .l--page {
+    width: 1220px;
+  }
+}
+
 @media (min-width: 1400px) {
   .l--page {
     width: 1220px;
@@ -232,15 +238,9 @@ header h1 .optional {
 
 #top-controls {
   border-bottom: 1px solid #ddd;
-  padding: 18px 0;
+  padding: 10px 0;
   box-shadow: 0 1px 4px rgba(0,0,0,0.08);
   background: white;
-}
-
-@media (min-height: 700px) {
-  #top-controls {
-    padding: 24px 0;
-  }
 }
 
 #top-controls .container {
@@ -380,16 +380,10 @@ header h1 .optional {
   display: flex;
   -webkit-justify-content: space-between;
   justify-content: space-between;
-  margin-top: 30px;
-  margin-bottom: 50px;
+  margin-top: 15px;
+  margin-bottom: 15px;
   padding-top: 2px;
   position: relative;
-}
-
-@media (min-height: 700px) {
-  #main-part {
-    margin-top: 50px;
-  }
 }
 
 #main-part h4 {
@@ -875,7 +869,7 @@ footer {
   border-top: solid 1px #eee;
   color: #ccc;
   font-weight: 300;
-  padding: 40px 0;
+  padding: 5px 0;
   height: 30px;
 }
 
