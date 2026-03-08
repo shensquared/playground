@@ -986,3 +986,9 @@ footer .links a:hover {
 #main-part .mdl-slider.is-upgraded:focus:not(:active)::-webkit-slider-thumb {
   box-shadow: 0 0 0 10px rgba(0,0,0, 0.12);
 }
+
+/* Embed mode: compact layout for iframe embedding in slides */
+body.embed .github-link { display: none; }
+body.embed footer { display: none; }
+body.embed #top-controls { padding: 5px 0; }
+body.embed #main-part { margin-top: 5px; margin-bottom: 0; }

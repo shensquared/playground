@@ -1134,6 +1134,11 @@ function simulationStarted() {
   parametersChanged = false;
 }
 
+// Embed mode: add class to body to hide chrome and tighten layout
+if (new URLSearchParams(window.location.search).has('embed')) {
+  document.body.classList.add('embed');
+}
+
 drawDatasetThumbnails();
 initTutorial();
 makeGUI();
