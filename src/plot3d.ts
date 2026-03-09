@@ -40,8 +40,9 @@ export class Plot3D {
   }
 
   private initializePlot(): void {
+    const isEmbed = document.body.classList.contains('embed');
     const layout = {
-      title: 'Neural Network Function Approximation',
+      title: isEmbed ? '' : 'Neural Network Function Approximation',
       scene: {
         xaxis: { title: {text: 'x1'}, range: this.xDomain },
         yaxis: { title: {text: 'x2'}, range: this.yDomain },
@@ -50,9 +51,9 @@ export class Plot3D {
           eye: { x: 1.5, y: 1.5, z: 1.5 }
         }
       },
-      width: 450,
-      height: 450,
-      margin: { l: 0, r: 0, b: 0, t: 30 }
+      width: isEmbed ? 300 : 450,
+      height: isEmbed ? 300 : 450,
+      margin: { l: 0, r: 0, b: 0, t: isEmbed ? 0 : 30 }
     };
 
     const config = {

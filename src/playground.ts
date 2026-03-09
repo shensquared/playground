@@ -1134,9 +1134,32 @@ function simulationStarted() {
   parametersChanged = false;
 }
 
-// Embed mode: add class to body to hide chrome and tighten layout
+// Embed mode: responsive scaling to fit 1.83:1 ratio
 if (new URLSearchParams(window.location.search).has('embed')) {
   document.body.classList.add('embed');
+
+  const DESIGN_WIDTH = 1280;
+  const ASPECT_RATIO = 1.83;
+  const DESIGN_HEIGHT = DESIGN_WIDTH / ASPECT_RATIO;
+
+  let scaleEmbed = () => {
+    let vw = window.innerWidth;
+    let vh = window.innerHeight;
+    // Fit within viewport while maintaining 1.83:1
+    let targetW = vw;
+    let targetH = vw / ASPECT_RATIO;
+    if (targetH > vh) {
+      targetH = vh;
+      targetW = vh * ASPECT_RATIO;
+    }
+    let scale = targetW / DESIGN_WIDTH;
+    document.body.style.width = DESIGN_WIDTH + 'px';
+    document.body.style.height = DESIGN_HEIGHT + 'px';
+    document.body.style.transform = `scale(${scale})`;
+  };
+
+  scaleEmbed();
+  window.addEventListener('resize', scaleEmbed);
 }
 
 drawDatasetThumbnails();
