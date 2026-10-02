@@ -303,12 +303,23 @@ function makeGUI() {
   // Check/uncheck the checbox according to the current state.
   discretize.property("checked", state.discretize);
 
+  // The data sliders move the points, never the model. The seed stays, so noise
+  // shifts the same points and the ratio only moves the train/test split, while
+  // the network keeps its weights and keeps training if it is playing. Only the
+  // losses need recomputing; the decision boundary cannot have changed.
+  function updateData() {
+    generateData(false, true);
+    lossTrain = getLoss(network, trainData);
+    lossTest = getLoss(network, testData);
+    d3.select("#loss-train").text(lossTrain.toFixed(3));
+    d3.select("#loss-test").text(lossTest.toFixed(3));
+  }
+
   let percTrain = d3.select("#percTrainData").on("input", function() {
     state.percTrainData = this.value;
     d3.select("label[for='percTrainData'] .value").text(this.value);
-    generateData();
+    updateData();
     parametersChanged = true;
-    reset();
   });
   percTrain.property("value", state.percTrainData);
   d3.select("label[for='percTrainData'] .value").text(state.percTrainData);
@@ -316,9 +327,8 @@ function makeGUI() {
   let noise = d3.select("#noise").on("input", function() {
     state.noise = this.value;
     d3.select("label[for='noise'] .value").text(this.value);
-    generateData();
+    updateData();
     parametersChanged = true;
-    reset();
   });
   let currentMax = parseInt(noise.property("max"));
   if (state.noise > currentMax) {
@@ -333,11 +343,13 @@ function makeGUI() {
   noise.property("value", state.noise);
   d3.select("label[for='noise'] .value").text(state.noise);
 
+  // Batch size only changes how often a training step updates the weights, which
+  // the next step reads, so the network and its training carry on.
   let batchSize = d3.select("#batchSize").on("input", function() {
     state.batchSize = this.value;
     d3.select("label[for='batchSize'] .value").text(this.value);
+    state.serialize();
     parametersChanged = true;
-    reset();
   });
   batchSize.property("value", state.batchSize);
   d3.select("label[for='batchSize'] .value").text(state.batchSize);
@@ -1112,10 +1124,12 @@ function hideControls() {
     .attr("href", window.location.href);
 }
 
-function generateData(firstTime = false) {
+function generateData(firstTime = false, keepSeed = false) {
   if (!firstTime) {
-    // Change the seed.
-    state.seed = Math.random().toFixed(5);
+    if (!keepSeed) {
+      // Change the seed.
+      state.seed = Math.random().toFixed(5);
+    }
     state.serialize();
     userHasInteracted();
   }
