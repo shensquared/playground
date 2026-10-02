@@ -269,12 +269,12 @@ limitations under the License.
       </div>
       <div id="heatmap"></div>
       <div id="plot3d" style="display: none;"></div>
-      <div style="float:left;margin-top:20px">
-        <div style="display:flex; align-items:center;">
+      <div class="legend" style="float:left;margin-top:20px">
+        <div class="legend-row" style="display:flex; align-items:center;">
 
           <!-- Gradient color scale -->
-          <div class="label" style="width:105px; margin-right: 10px">
-            Colors shows data, neuron and weight values.
+          <div class="label legend-text" style="width:105px; margin-right: 10px">
+            Colors show data, neuron and weight values.
           </div>
           <svg width="150" height="30" id="colormap">
             <defs>
@@ -290,7 +290,7 @@ limitations under the License.
           </svg>
         </div>
         <br/>
-        <div style="display:flex;">
+        <div class="checkbox-row" style="display:flex;">
           <label class="ui-showTestData mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="show-test-data">
             <input type="checkbox" id="show-test-data" class="mdl-checkbox__input" checked>
             <span class="mdl-checkbox__label label">Show test data</span>

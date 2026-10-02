@@ -41,18 +41,31 @@ export class Plot3D {
 
   private initializePlot(): void {
     const isEmbed = document.body.classList.contains('embed');
+    // Embed mode sets the axis titles at the room's 20px floor (ROOM.md A1), in
+    // the page font. Tick labels go: at that size they pile up in a 340px scene,
+    // and the surface meeting the points is the message, not the numbers (A3).
+    // This bundled Plotly is 3.x, which reads only the nested title.font form.
+    const axis = (text: string, extra: any) => {
+      const a: any = { title: { text: text }, ...extra };
+      if (isEmbed) {
+        a.title.font = { size: 20 };
+        a.showticklabels = false;
+      }
+      return a;
+    };
     const layout = {
       title: isEmbed ? '' : 'Neural Network Function Approximation',
+      font: isEmbed ? { family: '"Helvetica", "Arial", sans-serif', color: '#333' } : undefined,
       scene: {
-        xaxis: { title: {text: 'x1'}, range: this.xDomain },
-        yaxis: { title: {text: 'x2'}, range: this.yDomain },
-        zaxis: { title: {text: 'nn output'} },
+        xaxis: axis('x1', { range: this.xDomain }),
+        yaxis: axis('x2', { range: this.yDomain }),
+        zaxis: axis('nn output', {}),
         camera: {
           eye: { x: 1.5, y: 1.5, z: 1.5 }
         }
       },
-      width: isEmbed ? 300 : 450,
-      height: isEmbed ? 300 : 450,
+      width: isEmbed ? 340 : 450,
+      height: isEmbed ? 340 : 450,
       margin: { l: 0, r: 0, b: 0, t: isEmbed ? 0 : 30 }
     };
 

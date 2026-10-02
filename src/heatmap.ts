@@ -20,6 +20,12 @@ export interface HeatMapSettings {
   [key: string]: any;
   showAxes?: boolean;
   noSvg?: boolean;
+  /** Tick values for both axes; d3's default ticks when unset. */
+  axisTicks?: number[];
+  /** Room left for the axes and their labels, in px; 30 when unset. */
+  axisPadding?: number;
+  /** Font size of the x1 and x2 axis labels, in px; 14 when unset. */
+  axisLabelSize?: number;
 }
 
 /** Number of different shades (colors) when drawing a gradient heatmap */
@@ -48,7 +54,7 @@ export class HeatMap {
       userSettings?: HeatMapSettings) {
     this.numSamples = numSamples;
     let height = width;
-    let padding = userSettings.showAxes ? 30 : 0;
+    let padding = userSettings.showAxes ? (userSettings.axisPadding || 30) : 0;
 
     if (userSettings != null) {
       // overwrite the defaults with the user-specified settings.
@@ -123,6 +129,13 @@ export class HeatMap {
         .scale(this.yScale)
         .orient("right");
 
+      if (this.settings.axisTicks) {
+        xAxis.tickValues(this.settings.axisTicks);
+        yAxis.tickValues(this.settings.axisTicks);
+      }
+      // The labels sit just inside the far edge of the padding, clear of the ticks.
+      let labelSize = `${this.settings.axisLabelSize || 14}px`;
+
       this.svg.append("g")
         .attr("class", "x axis")
         .attr("transform", `translate(0,${height - 2 * padding})`)
@@ -137,19 +150,31 @@ export class HeatMap {
       // X-axis label (bottom)
       this.svg.append("text")
         .attr("x", (width - 2 * padding) / 2)
-        .attr("y", height - 2 * padding + 25)
+        .attr("y", height - 2 * padding + padding - 5)
         .attr("text-anchor", "middle")
-        .style("font-size", "14px")
+        .style("font-size", labelSize)
         .style("fill", "#333")
         .style("font-weight", "bold")
         .text("x1");
 
-      // Y-axis label (right side)
+      // Y-axis label (right side). With explicit ticks it takes the gap between
+      // the two middle tick labels, in the tick column, where no number sits
+      // beside it to read as part of the name.
+      let yLabelX = width - 2 * padding + padding - 8;
+      let yLabelY = (height - 2 * padding) / 2;
+      let yLabelAnchor = "middle";
+      let ticks = this.settings.axisTicks;
+      if (ticks) {
+        let m = Math.floor((ticks.length - 1) / 2);
+        yLabelX = width - 2 * padding + 9;
+        yLabelY = this.yScale((ticks[m] + ticks[m + 1]) / 2);
+        yLabelAnchor = "start";
+      }
       this.svg.append("text")
-        .attr("x", width - 2 * padding + 22)
-        .attr("y", (height - 2 * padding) / 2)
-        .attr("text-anchor", "middle")
-        .style("font-size", "14px")
+        .attr("x", yLabelX)
+        .attr("y", yLabelY)
+        .attr("text-anchor", yLabelAnchor)
+        .style("font-size", labelSize)
         .style("fill", "#333")
         .style("font-weight", "bold")
         .text("x2");

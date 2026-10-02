@@ -987,20 +987,108 @@ footer .links a:hover {
   box-shadow: 0 0 0 10px rgba(0,0,0, 0.12);
 }
 
-/* Embed mode: responsive 1.83:1 layout for iframe embedding in slides */
+/* Embed mode: the page laid out for a full-bleed 1280x720 slide block, the size
+   the lecture decks give it. Sizes are deck pixels, held to ROOM.md: no text
+   under 20 (A1), node boxes and marks large enough to tell apart (A4), nothing
+   clipped at the frame edge (B1, B8), and no page chrome (B3). The sentences
+   that repeat a column heading, the callouts, the GitHub corner and the footer
+   go, so the controls and the network have the room. playground.ts scales the
+   whole 1280x720 page uniformly to any other frame size. */
 body.embed {
   margin: 0;
   overflow: hidden;
-  width: 100vw;
-  height: calc(100vw / 1.83);
-  max-height: 100vh;
-  max-width: calc(100vh * 1.83);
+  width: 1280px;
+  height: 720px;
   transform-origin: top left;
 }
-body.embed .github-link { display: none; }
-body.embed footer { display: none; }
-body.embed #top-controls { padding: 5px 0; }
-body.embed #main-part { margin-top: 5px; margin-bottom: 0; }
-body.embed .callout { display: none !important; }
-body.embed .output.column { margin-left: -50px; }
-body.embed #plot3d { float: left; margin-top: 10px; }
+body.embed .github-link,
+body.embed footer,
+body.embed .callout,
+body.embed .ui-dataset > p,
+body.embed .features.column > p { display: none !important; }
+body.embed .l--page {
+  width: 1280px;
+  box-sizing: border-box;
+  padding: 0 20px;
+}
+
+/* Top bar: 84px, six controls with 20px labels beside the play buttons. */
+body.embed #top-controls { padding: 6px 0; height: 84px; box-sizing: border-box; }
+body.embed #top-controls .timeline-controls { width: 150px; margin-right: 0; }
+body.embed #top-controls .control {
+  margin-left: 24px;
+  margin-top: 0;
+  min-width: 0;
+  max-width: 170px;
+}
+body.embed #top-controls .control .label,
+body.embed #top-controls .control label {
+  font-size: 20px;
+  font-weight: 400;
+  color: #5f6672;
+  margin-bottom: 2px;
+}
+body.embed #top-controls .control .value { font-size: 30px; }
+body.embed #top-controls .control select { font-size: 22px; padding: 4px 0; }
+body.embed #top-controls .control .select::after { font-size: 26px; top: 4px; }
+
+/* Main part: the 636px below the top bar. */
+body.embed #main-part { margin-top: 8px; margin-bottom: 0; padding-top: 0; }
+body.embed #main-part h4 { font-size: 20px; padding-bottom: 4px; }
+body.embed #main-part p,
+body.embed #main-part .column .label,
+body.embed #main-part .column label {
+  font-size: 20px;
+  font-weight: 400;
+  color: #5f6672;
+}
+
+/* Data column */
+body.embed .data.column { width: 190px; flex: 0 0 190px; }
+body.embed .data.column .dataset-list { margin: 8px 0 4px; }
+body.embed .data.column .dataset { width: 56px; height: 56px; margin: 0 16px 16px 0; }
+body.embed #main-part .data.column p.slider { margin: 0 -25px 14px; }
+body.embed #main-part .basic-button { font-size: 20px; height: 44px; margin-top: 8px; }
+
+/* Features column, which also holds the network svg. */
+body.embed .features.column { width: 130px; flex: 0 0 130px; }
+body.embed #network { top: 104px; }
+body.embed #network svg .main-label { font-size: 20px; }
+body.embed .features.column .plus-minus-neurons {
+  width: 100px;
+  height: 64px;
+  top: -66px;
+  line-height: 30px;
+  font-size: 20px;
+}
+
+/* Hidden layers column takes what the other three leave. */
+body.embed .hidden-layers.column { width: auto; flex: 1 1 auto; }
+body.embed #main-part .hidden-layers h4 { margin-top: -4px; }
+body.embed .hidden-layers #layers-label { width: auto; }
+body.embed .hidden-layers #num-layers { width: auto; }
+
+/* Output column */
+body.embed .output.column { width: 340px; flex: 0 0 340px; margin-left: 0; }
+body.embed .metrics { font-size: 20px; height: 60px; }
+body.embed #linechart { width: 42%; height: 56px; }
+/* The heatmap's box keeps its full 360px while drawing 48px up and left of it,
+   so the negative margin hands that dead band back, and the svg may draw past
+   its own edge so the x2 label at the far right is not cut. */
+body.embed #heatmap { margin-top: 18px; margin-bottom: -48px; }
+body.embed #heatmap svg { overflow: visible; }
+body.embed #heatmap .tick text { fill: #5f6672; }
+body.embed #heatmap .tick:nth-child(7) text { fill: #5f6672; }
+body.embed #heatmap .tick:nth-child(7) line { stroke: #ddd; }
+body.embed #heatmap .tick:nth-child(3) text { fill: #333; }
+body.embed #heatmap .tick:nth-child(3) line { stroke: #999; }
+body.embed .axis text { font-size: 20px; fill: #5f6672; }
+/* The legend's end ticks are centred on its ends, so they draw past its edge. */
+body.embed #colormap { overflow: visible; }
+body.embed #plot3d { float: left; margin-top: 8px; }
+body.embed .output .legend { margin-top: 10px !important; width: 100%; }
+body.embed .output .legend-row { display: block !important; }
+body.embed #main-part .output .legend-text { width: auto !important; margin: 0 0 4px !important; }
+body.embed .output .legend br { display: none; }
+body.embed .output .checkbox-row { flex-direction: column; gap: 2px; margin-top: 6px; }
+body.embed #main-part .output .mdl-checkbox__label.label { font-size: 20px; line-height: 24px; }
