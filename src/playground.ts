@@ -370,19 +370,27 @@ function makeGUI() {
   });
   learningRate.property("value", state.learningRate);
 
+  // Regularization and λ change the training objective, not the network, so the
+  // weights carry on and the new penalty applies from the next step: the room can
+  // watch the weights shrink as λ rises. Each link holds its own penalty function,
+  // so a change of type updates every link in place.
   let regularDropdown = d3.select("#regularizations").on("change",
       function() {
     state.regularization = regularizations[this.value];
+    network.forEach(layer => layer.forEach(node =>
+        node.inputLinks.forEach(link => {
+          link.regularization = state.regularization;
+        })));
+    state.serialize();
     parametersChanged = true;
-    reset();
   });
   regularDropdown.property("value",
       getKeyFromValue(regularizations, state.regularization));
 
   let regularRate = d3.select("#regularRate").on("change", function() {
     state.regularizationRate = +this.value;
+    state.serialize();
     parametersChanged = true;
-    reset();
   });
   regularRate.property("value", state.regularizationRate);
 
