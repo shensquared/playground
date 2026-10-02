@@ -119,6 +119,17 @@ export class Plot3D {
     ];
 
     Plotly.newPlot(this.container, data, layout, config);
+
+    // A button or finger down on the plot means the viewer is turning it, so
+    // training steps hold their redraws until it lifts (see restyle below).
+    const el = document.getElementById(this.container);
+    const press = () => { this.pointerDown = true; };
+    const release = () => { this.pointerDown = false; };
+    el.addEventListener('mousedown', press, true);
+    el.addEventListener('touchstart', press, true);
+    window.addEventListener('mouseup', release, true);
+    window.addEventListener('touchend', release, true);
+    window.addEventListener('touchcancel', release, true);
   }
 
   // updateSurface runs on every training step, once a frame, so it sends Plotly
@@ -129,8 +140,29 @@ export class Plot3D {
   // spaced with both edges exact: given an uneven grid, Plotly's surface resamples
   // it to an even one on every call, which costs more than the smaller grid saves.
   private gridSent = false;
+  private pointerDown = false;
+
+  // Plotly rebuilds a 3D scene from the camera stored in the layout on every
+  // restyle, and it stores a drag's camera there only once the drag ends. While
+  // training restyled 60 times a second, every drag in progress snapped back and
+  // the plot could not be turned. So each restyle first copies the live camera
+  // into the layout, which keeps a finished drag or a wheel zoom where the viewer
+  // left it, and the surface waits out a drag in progress entirely: training
+  // carries on, and the next step after release redraws it. _scene.getCamera is
+  // Plotly-internal; the CDN copy is pinned at 2.27.0 (ROOM.md B6).
+  private restyle(update: any, traces: number[]): void {
+    const gd: any = document.getElementById(this.container);
+    const scene = gd._fullLayout && gd._fullLayout.scene && gd._fullLayout.scene._scene;
+    if (scene && gd.layout.scene) {
+      gd.layout.scene.camera = scene.getCamera();
+    }
+    Plotly.restyle(gd, update, traces);
+  }
 
   updateSurface(data: number[][], discretize: boolean): void {
+    if (this.pointerDown) {
+      return;
+    }
     const n = data.length;
     const idx: number[] = [];
     for (let k = 0; k < n; k += 3) {
@@ -154,7 +186,7 @@ export class Plot3D {
           this.yDomain[1] - (j / (n - 1)) * (this.yDomain[1] - this.yDomain[0]))];
       this.gridSent = true;
     }
-    Plotly.restyle(this.container, update, [0]);
+    this.restyle(update, [0]);
   }
 
   updatePoints(trainPoints: Example2D[], testPoints: Example2D[] = []): void {
@@ -181,7 +213,7 @@ export class Plot3D {
       z: [trainZ, testZ]
     };
 
-    Plotly.restyle(this.container, scatterUpdate, [1, 2]);
+    this.restyle(scatterUpdate, [1, 2]);
   }
 
   private trainPoints: Example2D[] = [];
