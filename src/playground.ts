@@ -290,6 +290,7 @@ function makeGUI() {
     state.serialize();
     userHasInteracted();
     heatMap.updateTestPoints(state.showTestData ? testData : []);
+    plot3D.updatePoints(trainData, state.showTestData ? testData : []);
   });
   // Check/uncheck the checkbox according to the current state.
   showTestData.property("checked", state.showTestData);
