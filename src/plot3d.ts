@@ -44,7 +44,6 @@ export class Plot3D {
     // Embed mode sets the axis titles at the room's 20px floor (ROOM.md A1), in
     // the page font. Tick labels go: at that size they pile up in a 340px scene,
     // and the surface meeting the points is the message, not the numbers (A3).
-    // This bundled Plotly is 3.x, which reads only the nested title.font form.
     const axis = (text: string, extra: any) => {
       const a: any = { title: { text: text }, ...extra };
       if (isEmbed) {
