@@ -48,7 +48,22 @@ function scrollTween(offset) {
   };
 }
 
-const RECT_SIZE = 30;
+// Embed mode lays the page out for a full-bleed 1280x720 slide block; the
+// body.embed rules in styles.css hold the rest. The class goes on before anything
+// is drawn, because the heatmap, the 3D plot and the network size themselves by it.
+const EMBED = new URLSearchParams(window.location.search).has('embed');
+if (EMBED) {
+  document.body.classList.add('embed');
+}
+
+// Node boxes are marks the room has to tell apart, so embed mode draws them at
+// 40px (ROOM.md A4), 62px apart so a full layer of eight still fits the height.
+const RECT_SIZE = EMBED ? 40 : 30;
+const NODE_GAP = EMBED ? 22 : 25;
+// Room left of the input boxes for their labels, and where the first hidden
+// layer may start; embed's 20px labels need more of both.
+const INPUT_LABEL_ROOM = EMBED ? 84 : 50;
+const FEATURE_WIDTH = EMBED ? 150 : 118;
 const BIAS_SIZE = 5;
 const NUM_SAMPLES_CLASSIFY = 500;
 const NUM_SAMPLES_REGRESS = 1200;
@@ -156,8 +171,12 @@ let selectedNodeId: string = null;
 // Plot the heatmap.
 let xDomain: [number, number] = [-6, 6];
 let heatMap =
-    new HeatMap(300, DENSITY, xDomain, xDomain, d3.select("#heatmap"),
-        {showAxes: true});
+    new HeatMap(EMBED ? 360 : 300, DENSITY, xDomain, xDomain, d3.select("#heatmap"),
+        EMBED
+          // Five ticks at the room's 20px floor (A3), labels at 22px.
+          ? {showAxes: true, axisTicks: [-6, -3, 0, 3, 6], axisPadding: 48,
+             axisLabelSize: 22}
+          : {showAxes: true});
 let plot3D = new Plot3D("plot3d", DENSITY, xDomain, xDomain);
 let linkWidthScale = d3.scale.linear()
   .domain([0, 5])
@@ -271,6 +290,7 @@ function makeGUI() {
     state.serialize();
     userHasInteracted();
     heatMap.updateTestPoints(state.showTestData ? testData : []);
+    plot3D.updatePoints(trainData, state.showTestData ? testData : []);
   });
   // Check/uncheck the checkbox according to the current state.
   showTestData.property("checked", state.showTestData);
@@ -284,12 +304,23 @@ function makeGUI() {
   // Check/uncheck the checbox according to the current state.
   discretize.property("checked", state.discretize);
 
+  // The data sliders move the points, never the model. The seed stays, so noise
+  // shifts the same points and the ratio only moves the train/test split, while
+  // the network keeps its weights and keeps training if it is playing. Only the
+  // losses need recomputing; the decision boundary cannot have changed.
+  function updateData() {
+    generateData(false, true);
+    lossTrain = getLoss(network, trainData);
+    lossTest = getLoss(network, testData);
+    d3.select("#loss-train").text(lossTrain.toFixed(3));
+    d3.select("#loss-test").text(lossTest.toFixed(3));
+  }
+
   let percTrain = d3.select("#percTrainData").on("input", function() {
     state.percTrainData = this.value;
     d3.select("label[for='percTrainData'] .value").text(this.value);
-    generateData();
+    updateData();
     parametersChanged = true;
-    reset();
   });
   percTrain.property("value", state.percTrainData);
   d3.select("label[for='percTrainData'] .value").text(state.percTrainData);
@@ -297,9 +328,8 @@ function makeGUI() {
   let noise = d3.select("#noise").on("input", function() {
     state.noise = this.value;
     d3.select("label[for='noise'] .value").text(this.value);
-    generateData();
+    updateData();
     parametersChanged = true;
-    reset();
   });
   let currentMax = parseInt(noise.property("max"));
   if (state.noise > currentMax) {
@@ -314,11 +344,13 @@ function makeGUI() {
   noise.property("value", state.noise);
   d3.select("label[for='noise'] .value").text(state.noise);
 
+  // Batch size only changes how often a training step updates the weights, which
+  // the next step reads, so the network and its training carry on.
   let batchSize = d3.select("#batchSize").on("input", function() {
     state.batchSize = this.value;
     d3.select("label[for='batchSize'] .value").text(this.value);
+    state.serialize();
     parametersChanged = true;
-    reset();
   });
   batchSize.property("value", state.batchSize);
   d3.select("label[for='batchSize'] .value").text(state.batchSize);
@@ -339,19 +371,27 @@ function makeGUI() {
   });
   learningRate.property("value", state.learningRate);
 
+  // Regularization and λ change the training objective, not the network, so the
+  // weights carry on and the new penalty applies from the next step: the room can
+  // watch the weights shrink as λ rises. Each link holds its own penalty function,
+  // so a change of type updates every link in place.
   let regularDropdown = d3.select("#regularizations").on("change",
       function() {
     state.regularization = regularizations[this.value];
+    network.forEach(layer => layer.forEach(node =>
+        node.inputLinks.forEach(link => {
+          link.regularization = state.regularization;
+        })));
+    state.serialize();
     parametersChanged = true;
-    reset();
   });
   regularDropdown.property("value",
       getKeyFromValue(regularizations, state.regularization));
 
   let regularRate = d3.select("#regularRate").on("change", function() {
     state.regularizationRate = +this.value;
+    state.serialize();
     parametersChanged = true;
-    reset();
   });
   regularRate.property("value", state.regularizationRate);
 
@@ -372,8 +412,14 @@ function makeGUI() {
   });
   problem.property("value", getKeyFromValue(problems, state.problem));
 
-  // Add scale to the gradient color map.
-  let x = d3.scale.linear().domain([-1, 1]).range([0, 144]);
+  // Add scale to the gradient color map. Embed mode draws it wider and taller so
+  // its tick labels clear the room's 20px floor.
+  let colormapWidth = EMBED ? 220 : 144;
+  if (EMBED) {
+    d3.select("#colormap").attr({width: colormapWidth + 12, height: 44});
+    d3.select("#colormap rect").attr({width: colormapWidth, height: 14});
+  }
+  let x = d3.scale.linear().domain([-1, 1]).range([0, colormapWidth]);
   let xAxis = d3.svg.axis()
     .scale(x)
     .orient("bottom")
@@ -381,7 +427,7 @@ function makeGUI() {
     .tickFormat(d3.format("d"));
   d3.select("#colormap g.core").append("g")
     .attr("class", "x axis")
-    .attr("transform", "translate(0,10)")
+    .attr("transform", `translate(0,${EMBED ? 14 : 10})`)
     .call(xAxis);
 
   // Listen for css-responsive changes and redraw the svg network.
@@ -474,7 +520,7 @@ function drawNode(cx: number, cy: number, nodeId: string, isInput: boolean,
         }
         text.append("tspan")
         .attr("baseline-shift", sep === "_" ? "sub" : "super")
-        .style("font-size", "9px")
+        .style("font-size", EMBED ? "14px" : "9px")
         .text(suffix);
       }
       if (label.substring(lastIndex)) {
@@ -567,11 +613,10 @@ function drawNetwork(network: nn.Node[][]): void {
     .attr("transform", `translate(${padding},${padding})`);
   // Draw the network layer by layer.
   let numLayers = network.length;
-  let featureWidth = 118;
   let layerScale = d3.scale.ordinal<number, number>()
       .domain(d3.range(1, numLayers - 1))
-      .rangePoints([featureWidth, width - RECT_SIZE], 0.7);
-  let nodeIndexScale = (nodeIndex: number) => nodeIndex * (RECT_SIZE + 25);
+      .rangePoints([FEATURE_WIDTH, width - RECT_SIZE], 0.7);
+  let nodeIndexScale = (nodeIndex: number) => nodeIndex * (RECT_SIZE + NODE_GAP);
 
 
   let calloutThumb = d3.select(".callout.thumbnail").style("display", "none");
@@ -580,7 +625,7 @@ function drawNetwork(network: nn.Node[][]): void {
   let targetIdWithCallout = null;
 
   // Draw the input layer separately.
-  let cx = RECT_SIZE / 2 + 50;
+  let cx = RECT_SIZE / 2 + INPUT_LABEL_ROOM;
   let nodeIds = Object.keys(INPUTS);
   let maxY = nodeIndexScale(nodeIds.length);
   nodeIds.forEach((nodeId, i) => {
@@ -589,12 +634,17 @@ function drawNetwork(network: nn.Node[][]): void {
     drawNode(cx, cy, nodeId, true, container);
   });
 
+  // At 20px, "8 neurons" is about 95px wide, so once layers sit closer than
+  // 110px apart embed mode labels each with its count alone.
+  let layerGap = numLayers > 3 ? layerScale(2) - layerScale(1) : Infinity;
+  let countOnly = EMBED && layerGap < 110;
+
   // Draw the intermediate layers.
   for (let layerIdx = 1; layerIdx < numLayers - 1; layerIdx++) {
     let numNodes = network[layerIdx].length;
     let cx = layerScale(layerIdx) + RECT_SIZE / 2;
     maxY = Math.max(maxY, nodeIndexScale(numNodes));
-    addPlusMinusControl(layerScale(layerIdx), layerIdx);
+    addPlusMinusControl(layerScale(layerIdx), layerIdx, countOnly);
     for (let i = 0; i < numNodes; i++) {
       let node = network[layerIdx][i];
       let cy = nodeIndexScale(i) + RECT_SIZE / 2;
@@ -669,10 +719,12 @@ function getRelativeHeight(selection) {
   return node.offsetHeight + node.offsetTop;
 }
 
-function addPlusMinusControl(x: number, layerIdx: number) {
+function addPlusMinusControl(x: number, layerIdx: number, countOnly = false) {
   let div = d3.select("#network").append("div")
     .classed("plus-minus-neurons", true)
-    .style("left", `${x - 10}px`);
+    // Embed mode widens the control to 100px for its 20px label and centres it
+    // over the layer's boxes.
+    .style("left", `${EMBED ? x + RECT_SIZE / 2 - 50 : x - 10}px`);
 
   let i = layerIdx - 1;
   let firstRow = div.append("div").attr("class", `ui-numNodes${layerIdx}`);
@@ -708,7 +760,8 @@ function addPlusMinusControl(x: number, layerIdx: number) {
 
   let suffix = state.networkShape[i] > 1 ? "s" : "";
   div.append("div").text(
-    state.networkShape[i] + " neuron" + suffix
+    countOnly ? String(state.networkShape[i])
+              : state.networkShape[i] + " neuron" + suffix
   );
 }
 
@@ -1080,10 +1133,12 @@ function hideControls() {
     .attr("href", window.location.href);
 }
 
-function generateData(firstTime = false) {
+function generateData(firstTime = false, keepSeed = false) {
   if (!firstTime) {
-    // Change the seed.
-    state.seed = Math.random().toFixed(5);
+    if (!keepSeed) {
+      // Change the seed.
+      state.seed = Math.random().toFixed(5);
+    }
     state.serialize();
     userHasInteracted();
   }
@@ -1134,30 +1189,17 @@ function simulationStarted() {
   parametersChanged = false;
 }
 
-// Embed mode: responsive scaling to fit 1.83:1 ratio
-if (new URLSearchParams(window.location.search).has('embed')) {
-  document.body.classList.add('embed');
-
+// Embed mode is designed at 1280x720, the deck's own size, and scales uniformly
+// to whatever frame it is given, so a smaller iframe shrinks it rather than
+// clipping it. At the deck's full-bleed block the scale is 1.
+if (EMBED) {
   const DESIGN_WIDTH = 1280;
-  const ASPECT_RATIO = 1.83;
-  const DESIGN_HEIGHT = DESIGN_WIDTH / ASPECT_RATIO;
-
+  const DESIGN_HEIGHT = 720;
   let scaleEmbed = () => {
-    let vw = window.innerWidth;
-    let vh = window.innerHeight;
-    // Fit within viewport while maintaining 1.83:1
-    let targetW = vw;
-    let targetH = vw / ASPECT_RATIO;
-    if (targetH > vh) {
-      targetH = vh;
-      targetW = vh * ASPECT_RATIO;
-    }
-    let scale = targetW / DESIGN_WIDTH;
-    document.body.style.width = DESIGN_WIDTH + 'px';
-    document.body.style.height = DESIGN_HEIGHT + 'px';
+    let scale = Math.min(window.innerWidth / DESIGN_WIDTH,
+        window.innerHeight / DESIGN_HEIGHT);
     document.body.style.transform = `scale(${scale})`;
   };
-
   scaleEmbed();
   window.addEventListener('resize', scaleEmbed);
 }
