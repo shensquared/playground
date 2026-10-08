@@ -52,20 +52,25 @@ export class Plot3D {
       }
       return a;
     };
+    // Regular mode draws the plot at the heatmap's 300px, the width the output
+    // column has room for, with no title of its own: the OUTPUT heading names it,
+    // as it does the heatmap. The camera stands further back than embed's so the
+    // tick labels and the z axis title stay inside the smaller scene.
+    const eye = isEmbed ? 1.5 : 1.9;
     const layout = {
-      title: isEmbed ? '' : 'Neural Network Function Approximation',
+      title: '',
       font: isEmbed ? { family: '"Helvetica", "Arial", sans-serif', color: '#333' } : undefined,
       scene: {
         xaxis: axis('x1', { range: this.xDomain }),
         yaxis: axis('x2', { range: this.yDomain }),
         zaxis: axis('nn output', {}),
         camera: {
-          eye: { x: 1.5, y: 1.5, z: 1.5 }
+          eye: { x: eye, y: eye, z: eye }
         }
       },
-      width: isEmbed ? 340 : 450,
-      height: isEmbed ? 340 : 450,
-      margin: { l: 0, r: 0, b: 0, t: isEmbed ? 0 : 30 }
+      width: isEmbed ? 340 : 300,
+      height: isEmbed ? 340 : 300,
+      margin: { l: 0, r: 0, b: 0, t: 0 }
     };
 
     const config = {
